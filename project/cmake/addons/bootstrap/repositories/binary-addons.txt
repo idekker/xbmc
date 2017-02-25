@@ -1,1 +1,1 @@
-binary-addons https://github.com/xbmc/repo-binary-addons.git Krypton
+binary-addons https://github.com/idekker/repo-binary-addons.git Krypton_aminopvr
