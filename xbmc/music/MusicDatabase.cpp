@@ -1758,17 +1758,34 @@ bool CMusicDatabase::GetGenresByArtist(int idArtist, CFileItem* item)
 {
   try
   {
-    std::string strSQL = PrepareSQL("SELECT DISTINCT song_genre.idGenre, genre.strGenre FROM "
-      "song_artist JOIN song ON song_artist.idSong = song.idSong JOIN "
-      "song_genre ON song.idSong = song_genre.idSong JOIN "
-      "genre ON song_genre.idGenre = genre.idGenre "
-      "WHERE song_artist.idArtist = %i ORDER BY song_genre.idGenre", idArtist);
+    std::string strSQL;
+    strSQL = PrepareSQL("SELECT DISTINCT song_genre.idGenre, genre.strGenre FROM "
+      "album_artist JOIN song ON album_artist.idAlbum = song.idAlbum "
+      "JOIN song_genre ON song.idSong = song_genre.idSong "
+      "JOIN genre ON song_genre.idGenre = genre.idGenre "
+      "WHERE album_artist.idArtist = %i "
+      "ORDER BY song_genre.idGenre", idArtist);
     if (!m_pDS->query(strSQL))
       return false;
     if (m_pDS->num_rows() == 0)
     {
+      // Artist does have any song genres via albums may not be an album artist.
+      // Check via songs artist to fetch song genres from compilations or where they are guest artist
       m_pDS->close();
-      return true;
+      strSQL = PrepareSQL("SELECT DISTINCT song_genre.idGenre, genre.strGenre FROM "
+        "song_artist JOIN song ON song_artist.idSong = song.idSong JOIN "
+        "song_genre ON song.idSong = song_genre.idSong "
+        "JOIN genre ON song_genre.idGenre = genre.idGenre "
+        "WHERE song_artist.idArtist = %i "
+        "ORDER BY song_genre.idGenre", idArtist);
+      if (!m_pDS->query(strSQL))
+        return false;
+      if (m_pDS->num_rows() == 0)
+      {
+        //No song genres, but query sucessfull
+        m_pDS->close();
+        return true;
+      }
     }
 
     CVariant artistSongGenres(CVariant::VariantTypeArray);
@@ -3049,8 +3066,14 @@ bool CMusicDatabase::CleanupArtists()
     m_pDS->exec("INSERT INTO tmp_delartists select idArtist from song_artist");
     m_pDS->exec("INSERT INTO tmp_delartists select idArtist from album_artist");
     m_pDS->exec(PrepareSQL("INSERT INTO tmp_delartists VALUES(%i)", BLANKARTIST_ID));
-    m_pDS->exec("delete from artist where idArtist not in (select idArtist from tmp_delartists)");
+    // tmp_delartists contains duplicate ids, and on a large library with small changes can be very large.
+    // To avoid MySQL hanging or timeout create a table of unique ids with primary key
+    m_pDS->exec("CREATE TEMPORARY TABLE tmp_keep (idArtist INTEGER PRIMARY KEY)");
+    m_pDS->exec("INSERT INTO tmp_keep SELECT DISTINCT idArtist from tmp_delartists");
+    m_pDS->exec("DELETE FROM artist WHERE idArtist NOT IN (SELECT idArtist FROM tmp_keep)");
+    // Tidy up temp tables
     m_pDS->exec("DROP TABLE tmp_delartists");
+    m_pDS->exec("DROP TABLE tmp_keep");
 
     return true;
   }

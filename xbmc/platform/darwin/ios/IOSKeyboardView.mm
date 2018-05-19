@@ -39,9 +39,25 @@ static CEvent keyboardFinishedEvent;
 @synthesize text;
 @synthesize _confirmed;
 @synthesize _iosKeyboard;
+@synthesize _frame;
 
 - (id)initWithFrame:(CGRect)frame
 {
+  _frame = frame;
+  if([NSThread currentThread] != [NSThread mainThread])
+  {
+    [self performSelectorOnMainThread:@selector(initWithFrameInternal) withObject:nil  waitUntilDone:YES];
+  }
+  else
+  {
+    [self initWithFrameInternal];
+  }
+  return self;
+}
+
+- (id)initWithFrameInternal
+{
+  CGRect frame = _frame;
   self = [super initWithFrame:frame];
   if (self) 
   {
@@ -321,6 +337,18 @@ static CEvent keyboardFinishedEvent;
 
 - (void) setHeading:(NSString *)heading
 {
+  if([NSThread currentThread] != [NSThread mainThread])
+  {
+    [self performSelectorOnMainThread:@selector(setHeadingInternal:) withObject:heading  waitUntilDone:YES];
+  }
+  else
+  {
+    [self setHeadingInternal:heading];
+  }
+}
+
+- (void) setHeadingInternal:(NSString *)heading
+{
   if (heading && heading.length > 0) {
     _heading.text = [NSString stringWithFormat:@" %@:", heading];
   }
@@ -335,9 +363,24 @@ static CEvent keyboardFinishedEvent;
   [self textChanged:nil];
 }
 
+- (void) setHiddenInternal:(NSNumber *)hidden
+{
+  BOOL hiddenBool = [hidden boolValue];
+  [_textField setSecureTextEntry:hiddenBool];
+}
+
 - (void) setHidden:(BOOL)hidden
 {
-  [_textField setSecureTextEntry:hidden];
+  NSNumber *passedValue = [NSNumber numberWithBool:hidden];
+
+  if([NSThread currentThread] != [NSThread mainThread])
+  {
+    [self performSelectorOnMainThread:@selector(setHiddenInternal:) withObject:passedValue  waitUntilDone:YES];
+  }
+  else
+  {
+    [self setHiddenInternal:passedValue];
+  }
 }
 
 - (void) textChanged:(NSNotification*)aNotification; {

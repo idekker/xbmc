@@ -2509,7 +2509,7 @@ void CVideoPlayer::HandleMessages()
       {
         double now = m_clock.GetAbsoluteClock();
         if (m_playSpeed == DVD_PLAYSPEED_NORMAL &&
-            DVD_TIME_TO_MSEC(now - m_State.lastSeek) < 2000 &&
+            (now - m_State.lastSeek)/1000 < 2000 &&
             !msg.GetAccurate())
         {
           m_processInfo->SetStateSeeking(false);
@@ -2528,7 +2528,7 @@ void CVideoPlayer::HandleMessages()
 
       double time = msg.GetTime();
       if (msg.GetRelative())
-        time = GetTime() + time;
+        time = (m_clock.GetClock() + m_State.time_offset) / 1000l + time;
 
       time = msg.GetRestore() ? m_Edl.RestoreCutTime(time) : time;
 
@@ -2539,7 +2539,7 @@ void CVideoPlayer::HandleMessages()
       //! of the desired segment. With the current approach calculated time may point
       //! to nirvana
       if (m_pInputStream->GetIPosTime() == nullptr)
-        time -= DVD_TIME_TO_MSEC(m_State.time_offset);
+        time -= m_State.time_offset/1000;
 
       CLog::Log(LOGDEBUG, "demuxer seek to: %f", time);
       if (m_pDemuxer && m_pDemuxer->SeekTime(time, msg.GetBackward(), &start))
@@ -3595,6 +3595,7 @@ bool CVideoPlayer::OpenStream(CCurrentStream& current, int64_t demuxerId, int iS
     if(!m_pSubtitleDemuxer || m_pSubtitleDemuxer->GetFileName() != st.filename)
     {
       CLog::Log(LOGNOTICE, "Opening Subtitle file: %s", st.filename.c_str());
+      SAFE_DELETE(m_pSubtitleDemuxer);
       std::unique_ptr<CDVDDemuxVobsub> demux(new CDVDDemuxVobsub());
       if(!demux->Open(st.filename, source, st.filename2))
         return false;
@@ -3840,33 +3841,30 @@ bool CVideoPlayer::OpenSubtitleStream(CDVDStreamInfo& hint)
   return true;
 }
 
-bool CVideoPlayer::AdaptForcedSubtitles()
+void CVideoPlayer::AdaptForcedSubtitles()
 {
-  bool valid = false;
   SelectionStream ss = m_SelectionStreams.Get(STREAM_SUBTITLE, GetSubtitle());
-  if (ss.flags & CDemuxStream::FLAG_FORCED || !GetSubtitleVisible())
+  if (ss.flags & CDemuxStream::FLAG_FORCED)
   {
     SelectionStream as = m_SelectionStreams.Get(STREAM_AUDIO, GetAudioStream());
-
+    bool found = false;
     for (const auto &stream : m_SelectionStreams.Get(STREAM_SUBTITLE))
     {
       if (stream.flags & CDemuxStream::FLAG_FORCED && g_LangCodeExpander.CompareISO639Codes(stream.language, as.language))
       {
-        if(OpenStream(m_CurrentSubtitle, stream.demuxerId, stream.id, stream.source))
+        if (OpenStream(m_CurrentSubtitle, stream.demuxerId, stream.id, stream.source))
         {
-          valid = true;
+          found = true;
           SetSubtitleVisibleInternal(true);
           break;
         }
       }
     }
-    if(!valid)
+    if (!found)
     {
-      CloseStream(m_CurrentSubtitle, true);
       SetSubtitleVisibleInternal(false);
     }
   }
-  return valid;
 }
 
 bool CVideoPlayer::OpenTeletextStream(CDVDStreamInfo& hint)
@@ -4469,6 +4467,11 @@ bool CVideoPlayer::OnAction(const CAction &action)
             return true;
           }
         }
+        if (!g_PVRManager.GetCurrentChannel())
+        {
+          // If this is a recording, then handle the actions in the next block
+          break;
+        }
         bool bPreview(action.GetID() == ACTION_MOVE_UP && // only up/down shows a preview, all others do switch
                       CSettings::GetInstance().GetBool(CSettings::SETTING_PVRPLAYBACK_CONFIRMCHANNELSWITCH));
 
@@ -4521,6 +4524,11 @@ bool CVideoPlayer::OnAction(const CAction &action)
             m_messenger.Put(new CDVDMsgPlayerSeek(mode));
             return true;
           }
+        }
+        if (!g_PVRManager.GetCurrentChannel())
+        {
+          // If this is a recording, then handle the actions in the next block
+          break;
         }
         bool bPreview(action.GetID() == ACTION_MOVE_DOWN && // only up/down shows a preview, all others do switch
                       CSettings::GetInstance().GetBool(CSettings::SETTING_PVRPLAYBACK_CONFIRMCHANNELSWITCH));

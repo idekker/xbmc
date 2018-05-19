@@ -1040,6 +1040,10 @@ void CTagLoaderTagLib::AddArtistInstrument(CMusicInfoTag &tag, const std::vector
 
 bool CTagLoaderTagLib::Load(const std::string& strFileName, CMusicInfoTag& tag, const std::string& fallbackFileExtension, MUSIC_INFO::EmbeddedArt *art /* = NULL */)
 {
+  // Dont try to read the tags for streams & shoutcast
+  if (URIUtils::IsInternetStream(strFileName))
+    return false;
+
   std::string strExtension = URIUtils::GetExtension(strFileName);
   StringUtils::TrimLeft(strExtension, ".");
 
@@ -1085,7 +1089,7 @@ bool CTagLoaderTagLib::Load(const std::string& strFileName, CMusicInfoTag& tag, 
       file = new IT::File(stream);
     else if (strExtension == "mod" || strExtension == "module" || strExtension == "nst" || strExtension == "wow")
       file = new Mod::File(stream);
-    else if (strExtension == "mp4" || strExtension == "m4a" ||
+    else if (strExtension == "mp4" || strExtension == "m4a" || strExtension == "m4v" ||
              strExtension == "m4r" || strExtension == "m4b" ||
              strExtension == "m4p" || strExtension == "3g2")
       file = mp4File = new MP4::File(stream);

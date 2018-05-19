@@ -333,6 +333,7 @@ const std::string CSettings::SETTING_SERVICES_AIRPLAYPASSWORD = "services.airpla
 const std::string CSettings::SETTING_SERVICES_AIRPLAYVIDEOSUPPORT = "services.airplayvideosupport";
 const std::string CSettings::SETTING_SMB_WINSSERVER = "smb.winsserver";
 const std::string CSettings::SETTING_SMB_WORKGROUP = "smb.workgroup";
+const std::string CSettings::SETTING_SMB_MAXPROTOCOL = "smb.maxprotocol";
 const std::string CSettings::SETTING_VIDEOSCREEN_MONITOR = "videoscreen.monitor";
 const std::string CSettings::SETTING_VIDEOSCREEN_SCREEN = "videoscreen.screen";
 const std::string CSettings::SETTING_VIDEOSCREEN_RESOLUTION = "videoscreen.resolution";
@@ -375,6 +376,7 @@ const std::string CSettings::SETTING_INPUT_PERIPHERALS = "input.peripherals";
 const std::string CSettings::SETTING_INPUT_ENABLEMOUSE = "input.enablemouse";
 const std::string CSettings::SETTING_INPUT_ASKNEWCONTROLLERS = "input.asknewcontrollers";
 const std::string CSettings::SETTING_INPUT_CONTROLLERCONFIG = "input.controllerconfig";
+const std::string CSettings::SETTING_INPUT_RUMBLENOTIFY = "input.rumblenotify";
 const std::string CSettings::SETTING_INPUT_TESTRUMBLE = "input.testrumble";
 const std::string CSettings::SETTING_INPUT_CONTROLLERPOWEROFF = "input.controllerpoweroff";
 const std::string CSettings::SETTING_INPUT_APPLEREMOTEMODE = "input.appleremotemode";
@@ -1158,6 +1160,7 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.insert(CSettings::SETTING_SERVICES_ESCONTINUOUSDELAY);
   settingSet.insert(CSettings::SETTING_SMB_WINSSERVER);
   settingSet.insert(CSettings::SETTING_SMB_WORKGROUP);
+  settingSet.insert(CSettings::SETTING_SMB_MAXPROTOCOL);
   m_settingsManager->RegisterCallback(&CNetworkServices::GetInstance(), settingSet);
 
   settingSet.clear();

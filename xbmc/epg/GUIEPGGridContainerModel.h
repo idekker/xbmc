@@ -53,6 +53,7 @@ namespace EPG
     void Refresh(const std::unique_ptr<CFileItemList> &items, const CDateTime &gridStart, const CDateTime &gridEnd, int iRulerUnit, int iBlocksPerPage, float fBlockSize);
     void SetInvalid();
 
+    static const int INVALID_INDEX = -1;
     void FindChannelAndBlockIndex(int channelUid, unsigned int broadcastUid, int eventOffset, int &newChannelIndex, int &newBlockIndex) const;
 
     void FreeChannelMemory(int keepStart, int keepEnd);
@@ -84,6 +85,9 @@ namespace EPG
     const CDateTime &GetGridEnd() const { return m_gridEnd; }
 
     unsigned int GetGridStartPadding() const;
+
+    int GetFirstEventBlock(const CDateTime &eventStart) const;
+    int GetLastEventBlock(const CDateTime &eventEnd) const;
 
   private:
     void FreeItemsMemory();
